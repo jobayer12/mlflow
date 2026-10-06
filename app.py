@@ -6,6 +6,8 @@ import os
 import warnings
 import sys
 
+import certifi
+
 import pandas as pd
 import numpy as np
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
@@ -20,6 +22,9 @@ import logging
 
 logging.basicConfig(level=logging.WARN)
 logger = logging.getLogger(__name__)
+
+# Use certifi's CA bundle so HTTPS downloads work even when the Python install has none.
+os.environ.setdefault("SSL_CERT_FILE", certifi.where())
 
 
 def eval_metrics(actual, pred):
@@ -43,6 +48,7 @@ if __name__ == "__main__":
         logger.exception(
             "Unable to download training & test CSV, check your internet connection. Error: %s", e
         )
+        sys.exit(1)
 
     # Split the data into training and test sets. (0.75, 0.25) split.
     train, test = train_test_split(data)
@@ -56,6 +62,7 @@ if __name__ == "__main__":
     alpha = float(sys.argv[1]) if len(sys.argv) > 1 else 0.5
     l1_ratio = float(sys.argv[2]) if len(sys.argv) > 2 else 0.5
 
+
     # Set the tracking URI BEFORE starting the run, otherwise the run is created
     # in one store and the model is logged to another ("Run not found").
     # For a remote server (e.g. DagsHub), export MLFLOW_TRACKING_URI,
@@ -63,6 +70,9 @@ if __name__ == "__main__":
     remote_server_uri = os.getenv("MLFLOW_TRACKING_URI")
     if remote_server_uri:
         mlflow.set_tracking_uri(remote_server_uri)
+
+    # Log into a named experiment; the server's default experiment (id 0) may be deleted.
+    mlflow.set_experiment(os.getenv("MLFLOW_EXPERIMENT_NAME", "ElasticnetWineQuality"))
 
     with mlflow.start_run():
         lr = ElasticNet(alpha=alpha, l1_ratio=l1_ratio, random_state=42)
@@ -97,12 +107,12 @@ if __name__ == "__main__":
             # https://mlflow.org/docs/latest/model-registry.html#api-workflow
             mlflow.sklearn.log_model(
                 lr,
-                name="model",
+                artifact_path="model",
                 registered_model_name="ElasticnetWineModel",
                 signature=signature,
                 input_example=input_example,
             )
         else:
             mlflow.sklearn.log_model(
-                lr, name="model", signature=signature, input_example=input_example
+                lr, artifact_path="model", signature=signature, input_example=input_example
             )

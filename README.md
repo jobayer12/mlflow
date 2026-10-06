@@ -1,2 +1,5 @@
 # mlflow
 
+export MLFLOW_TRACKING_URI=https://dagshub.com/jobayer12/mlflow.mlflow
+export MLFLOW_TRACKING_USERNAME=jobayer12
+export MLFLOW_TRACKING_PASSWORD=21288a115a78f6dd6b4fd0de4d452606e59d88e5
